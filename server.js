@@ -20,6 +20,12 @@ let lastEspPing = 0;
 // --- ROOT DASHBOARD ---
 app.get('/', (req, res) => {
   const frontendUrl = process.env.FRONTEND_URL || 'https://frontend-ten-teal-58.vercel.app/';
+  const esp32Connected = (Date.now() - lastEspPing) < 15000;
+  
+  const statusHtml = esp32Connected
+    ? `<div class="status"><div class="status-dot"></div> ESP32 Connected & Online</div>`
+    : `<div class="status" style="background: #fee2e2; color: #991b1b;"><div class="status-dot" style="background: #ef4444; box-shadow: 0 0 0 4px #fee2e2;"></div> System Offline (Waiting for ESP32)</div>`;
+
   const html = `
     <!DOCTYPE html>
     <html lang="en">
@@ -44,7 +50,7 @@ app.get('/', (req, res) => {
     </head>
     <body>
       <div class="container">
-        <div class="status"><div class="status-dot"></div> Database Connected & Online</div>
+        ${statusHtml}
         <h1>Smart Office Backend</h1>
         <p>The backend API service is running successfully. Waiting for ESP32 hardware to connect...</p>
         <div class="stats">
@@ -77,7 +83,7 @@ app.get('/api/state', (req, res) => {
 // CRUD for Employees
 app.post('/api/employees', (req, res) => {
   const newEmployee = {
-    id: `e${Date.now()}`,
+    id: \`e\${Date.now()}\`,
     status: 'Out',
     currentRoom: null,
     timeInRoom: 0,
@@ -131,17 +137,15 @@ app.post('/api/esp32/ping', (req, res) => {
           timeInRoom: 0,
           history: [newHistory, ...emp.history].slice(0, 50)
         };
-        console.log(`ESP32: Moved ${emp.name} to ${roomId}`);
+        console.log(\`ESP32: Moved \${emp.name} to \${roomId}\`);
       }
     }
   }
   res.json({ success: true });
 });
 
-// Remove fake simulation loop
-
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(`Backend server running on port ${PORT}`);
-  console.log(`ESP32 Endpoint Ready: POST /api/esp32/ping`);
+  console.log(\`Backend server running on port \${PORT}\`);
+  console.log(\`ESP32 Endpoint Ready: POST /api/esp32/ping\`);
 });
