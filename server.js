@@ -23,7 +23,7 @@ let employees = [
 
 // --- ROOT DASHBOARD ---
 app.get('/', (req, res) => {
-  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+  const frontendUrl = process.env.FRONTEND_URL || 'https://frontend-ten-teal-58.vercel.app/';
   const html = `
     <!DOCTYPE html>
     <html lang="en">
