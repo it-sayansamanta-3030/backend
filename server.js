@@ -83,7 +83,7 @@ app.get('/api/state', (req, res) => {
 // CRUD for Employees
 app.post('/api/employees', (req, res) => {
   const newEmployee = {
-    id: \`e\${Date.now()}\`,
+    id: `e${Date.now()}`,
     status: 'Out',
     currentRoom: null,
     timeInRoom: 0,
@@ -137,7 +137,7 @@ app.post('/api/esp32/ping', (req, res) => {
           timeInRoom: 0,
           history: [newHistory, ...emp.history].slice(0, 50)
         };
-        console.log(\`ESP32: Moved \${emp.name} to \${roomId}\`);
+        console.log(`ESP32: Moved ${emp.name} to ${roomId}`);
       }
     }
   }
@@ -146,6 +146,6 @@ app.post('/api/esp32/ping', (req, res) => {
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(\`Backend server running on port \${PORT}\`);
-  console.log(\`ESP32 Endpoint Ready: POST /api/esp32/ping\`);
+  console.log(`Backend server running on port ${PORT}`);
+  console.log(`ESP32 Endpoint Ready: POST /api/esp32/ping`);
 });
