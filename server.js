@@ -14,12 +14,8 @@ const ROOMS = [
   { id: 'r5', name: 'Engineering Bay', capacity: 40 },
 ];
 
-let employees = [
-  { id: 'e1', name: 'Raj Singh', role: 'DataBase', empId: 25, status: 'In', currentRoom: 'r1', timeInRoom: 15, totalHoursToday: 4.5, lastKnownRoom: 'r1', history: [] },
-  { id: 'e2', name: 'Amit Sharma', role: 'Frontend', empId: 26, status: 'In', currentRoom: 'r5', timeInRoom: 120, totalHoursToday: 6.2, lastKnownRoom: 'r5', history: [] },
-  { id: 'e3', name: 'Priya Patel', role: 'Backend', empId: 27, status: 'In', currentRoom: 'r4', timeInRoom: 30, totalHoursToday: 5.0, lastKnownRoom: 'r4', history: [] },
-  { id: 'e4', name: 'Alice Admin', role: 'admin', empId: 1, status: 'Out', currentRoom: null, timeInRoom: 0, totalHoursToday: 8.0, lastKnownRoom: 'r2', history: [] },
-];
+let employees = [];
+let lastEspPing = 0;
 
 // --- ROOT DASHBOARD ---
 app.get('/', (req, res) => {
@@ -50,7 +46,7 @@ app.get('/', (req, res) => {
       <div class="container">
         <div class="status"><div class="status-dot"></div> Database Connected & Online</div>
         <h1>Smart Office Backend</h1>
-        <p>The backend API service is running successfully. ESP32 simulators and active endpoints are live and receiving data.</p>
+        <p>The backend API service is running successfully. Waiting for ESP32 hardware to connect...</p>
         <div class="stats">
           <div class="stat-card">
             <div class="stat-value">${employees.length}</div>
@@ -73,7 +69,9 @@ app.get('/', (req, res) => {
 
 // Get all state (for the React Dashboard)
 app.get('/api/state', (req, res) => {
-  res.json({ employees, rooms: ROOMS });
+  // If ESP32 hasn't pinged in the last 15 seconds, it is offline
+  const esp32Connected = (Date.now() - lastEspPing) < 15000;
+  res.json({ employees, rooms: ROOMS, esp32Connected });
 });
 
 // CRUD for Employees
@@ -107,64 +105,40 @@ app.delete('/api/employees/:id', (req, res) => {
 
 // --- ESP32 HARDWARE ENDPOINT ---
 // An actual ESP32 would send a POST request here when it detects an employee beacon in a room
+// Or it can just ping without a body to say "I am alive"
 app.post('/api/esp32/ping', (req, res) => {
-  const { employeeId, roomId } = req.body; // e.g. { employeeId: 'e1', roomId: 'r2' }
+  lastEspPing = Date.now(); // Update connection status
+
+  const { employeeId, roomId } = req.body;
   
-  const empIndex = employees.findIndex(e => e.id === employeeId);
-  if (empIndex !== -1) {
-    const emp = employees[empIndex];
-    if (emp.currentRoom !== roomId) {
-      const newHistory = {
-        id: Math.random().toString(36).substr(2, 9),
-        room: roomId,
-        entryTime: new Date(),
-        exitTime: null,
-      };
-      
-      employees[empIndex] = {
-        ...emp,
-        status: 'In',
-        currentRoom: roomId,
-        lastKnownRoom: roomId,
-        timeInRoom: 0,
-        history: [newHistory, ...emp.history].slice(0, 50)
-      };
-      console.log(`ESP32: Moved ${emp.name} to ${roomId}`);
+  if (employeeId && roomId) {
+    const empIndex = employees.findIndex(e => e.id === employeeId);
+    if (empIndex !== -1) {
+      const emp = employees[empIndex];
+      if (emp.currentRoom !== roomId) {
+        const newHistory = {
+          id: Math.random().toString(36).substr(2, 9),
+          room: roomId,
+          entryTime: new Date(),
+          exitTime: null,
+        };
+        
+        employees[empIndex] = {
+          ...emp,
+          status: 'In',
+          currentRoom: roomId,
+          lastKnownRoom: roomId,
+          timeInRoom: 0,
+          history: [newHistory, ...emp.history].slice(0, 50)
+        };
+        console.log(`ESP32: Moved ${emp.name} to ${roomId}`);
+      }
     }
   }
   res.json({ success: true });
 });
 
-// --- SIMULATION LOOP ---
-// Mimics ESP32s pinging the server every 2 seconds
-setInterval(() => {
-  employees = employees.map(emp => {
-    // Only randomly move employees who are 'In'
-    if (emp.status === 'In' && Math.random() > 0.8) {
-      const randomRoom = ROOMS[Math.floor(Math.random() * ROOMS.length)].id;
-      if (randomRoom !== emp.currentRoom) {
-        const newHistory = {
-          id: Math.random().toString(36).substr(2, 9),
-          room: randomRoom,
-          entryTime: new Date(),
-          exitTime: null,
-        };
-        return {
-          ...emp,
-          currentRoom: randomRoom,
-          lastKnownRoom: randomRoom,
-          timeInRoom: 0,
-          history: [newHistory, ...emp.history].slice(0, 50),
-        };
-      }
-    }
-    // Increment time in room for all 'In' employees
-    if (emp.status === 'In') {
-       return { ...emp, timeInRoom: emp.timeInRoom + (2/60), totalHoursToday: emp.totalHoursToday + (2/3600) };
-    }
-    return emp;
-  });
-}, 2000);
+// Remove fake simulation loop
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
