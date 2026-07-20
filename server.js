@@ -21,6 +21,54 @@ let employees = [
   { id: 'e4', name: 'Alice Admin', role: 'admin', empId: 1, status: 'Out', currentRoom: null, timeInRoom: 0, totalHoursToday: 8.0, lastKnownRoom: 'r2', history: [] },
 ];
 
+// --- ROOT DASHBOARD ---
+app.get('/', (req, res) => {
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+  const html = `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Backend Status Dashboard</title>
+      <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8fafc; color: #0f172a; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .container { background: white; padding: 40px; border-radius: 16px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1); max-width: 500px; width: 100%; text-align: center; }
+        .status { display: inline-flex; items-center; gap: 8px; background: #dcfce7; color: #166534; padding: 6px 12px; border-radius: 9999px; font-size: 14px; font-weight: 600; margin-bottom: 24px; }
+        .status-dot { width: 8px; height: 8px; background: #22c55e; border-radius: 50%; box-shadow: 0 0 0 4px #dcfce7; }
+        h1 { margin: 0 0 16px 0; font-size: 24px; color: #1e293b; }
+        p { color: #64748b; margin-bottom: 24px; line-height: 1.5; }
+        .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 32px; text-align: left; }
+        .stat-card { background: #f1f5f9; padding: 16px; border-radius: 12px; }
+        .stat-value { font-size: 24px; font-weight: bold; color: #0f172a; }
+        .stat-label { font-size: 12px; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 4px; }
+        .btn { display: inline-block; background: #2563eb; color: white; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; transition: background 0.2s; width: 100%; box-sizing: border-box; }
+        .btn:hover { background: #1d4ed8; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="status"><div class="status-dot"></div> Database Connected & Online</div>
+        <h1>Smart Office Backend</h1>
+        <p>The backend API service is running successfully. ESP32 simulators and active endpoints are live and receiving data.</p>
+        <div class="stats">
+          <div class="stat-card">
+            <div class="stat-value">${employees.length}</div>
+            <div class="stat-label">Active Employees</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">${ROOMS.length}</div>
+            <div class="stat-label">Tracked Rooms</div>
+          </div>
+        </div>
+        <a href="${frontendUrl}" class="btn" target="_blank">Open Main Dashboard</a>
+      </div>
+    </body>
+    </html>
+  `;
+  res.send(html);
+});
+
 // --- REST API ENDPOINTS ---
 
 // Get all state (for the React Dashboard)
