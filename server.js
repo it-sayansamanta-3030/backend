@@ -7,11 +7,8 @@ app.use(express.json());
 
 // Initial static data
 const ROOMS = [
-  { id: 'r1', name: 'Lobby', capacity: 20 },
-  { id: 'r2', name: 'Meeting Room A', capacity: 10 },
-  { id: 'r3', name: 'Meeting Room B', capacity: 8 },
-  { id: 'r4', name: 'Cafeteria', capacity: 50 },
-  { id: 'r5', name: 'Engineering Bay', capacity: 40 },
+  { id: 'hallway', name: 'Main Hallway', capacity: 20 },
+  { id: 'cafeteria', name: 'Cafeteria', capacity: 50 },
 ];
 
 let employees = [];
@@ -90,6 +87,10 @@ app.post('/api/employees', (req, res) => {
     totalHoursToday: 0,
     lastKnownRoom: null,
     history: [],
+    gender: req.body.gender || 'Unknown',
+    department: req.body.department || req.body.role || 'General',
+    authorized: req.body.authorized !== undefined ? req.body.authorized : true,
+    lastSeen: 0,
     ...req.body
   };
   employees.push(newEmployee);
@@ -120,6 +121,8 @@ app.post('/api/esp32/ping', (req, res) => {
     const empIndex = employees.findIndex(e => String(e.empId) === String(employeeId));
     if (empIndex !== -1) {
       const emp = employees[empIndex];
+      const updatedEmp = { ...emp, lastSeen: Date.now() };
+
       if (emp.currentRoom !== roomId) {
         const newHistory = {
           id: Math.random().toString(36).substr(2, 9),
@@ -128,16 +131,14 @@ app.post('/api/esp32/ping', (req, res) => {
           exitTime: null,
         };
         
-        employees[empIndex] = {
-          ...emp,
-          status: 'In',
-          currentRoom: roomId,
-          lastKnownRoom: roomId,
-          timeInRoom: 0,
-          history: [newHistory, ...emp.history].slice(0, 50)
-        };
+        updatedEmp.status = 'In';
+        updatedEmp.currentRoom = roomId;
+        updatedEmp.lastKnownRoom = roomId;
+        updatedEmp.timeInRoom = 0;
+        updatedEmp.history = [newHistory, ...emp.history].slice(0, 50);
         console.log(`ESP32: Moved ${emp.name} to ${roomId}`);
       }
+      employees[empIndex] = updatedEmp;
     }
   }
   res.json({ success: true });
