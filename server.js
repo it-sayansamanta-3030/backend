@@ -13,6 +13,21 @@ const ROOMS = [
 
 let employees = [];
 let lastEspPing = 0;
+let alerts = [];
+
+// Clean up stale presence every 5 seconds
+setInterval(() => {
+  const now = Date.now();
+  employees.forEach(emp => {
+    if (emp.status === 'In' && emp.lastSeen && (now - emp.lastSeen > 60000)) {
+      emp.status = 'Out';
+      emp.currentRoom = null;
+      if (emp.history && emp.history.length > 0 && !emp.history[0].exitTime) {
+        emp.history[0].exitTime = new Date();
+      }
+    }
+  });
+}, 5000);
 
 // --- ROOT DASHBOARD ---
 app.get('/', (req, res) => {
@@ -77,6 +92,10 @@ app.get('/api/state', (req, res) => {
   res.json({ employees, rooms: ROOMS, esp32Connected });
 });
 
+app.get('/api/alerts', (req, res) => {
+  res.json(alerts);
+});
+
 // CRUD for Employees
 app.post('/api/employees', (req, res) => {
   const newEmployee = {
@@ -121,6 +140,19 @@ app.post('/api/esp32/ping', (req, res) => {
     const empIndex = employees.findIndex(e => String(e.empId) === String(employeeId));
     if (empIndex !== -1) {
       const emp = employees[empIndex];
+      
+      if (emp.authorized === false) {
+        alerts.unshift({
+          type: 'UNAUTHORIZED_ENTRY',
+          employeeId: emp.empId,
+          employeeName: emp.name,
+          roomId,
+          timestamp: new Date()
+        });
+        if (alerts.length > 50) alerts = alerts.slice(0, 50);
+        return res.json({ success: true, alert: true });
+      }
+
       const updatedEmp = { ...emp, lastSeen: Date.now() };
 
       if (emp.currentRoom !== roomId) {
